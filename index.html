@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>とけいクイズ（なんじ・なんじはん）</title>
+  <style>
+    :root{
+      --bg:#f4f6fb;
+      --card:#ffffff;
+      --text:#1b1f2a;
+      --muted:#5b6478;
+      --line:#e7eaf3;
+      --accent:#2b66ff;
+      --accent2:#1f4fe0;
+      --chip:#eef2ff;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 22px 16px 32px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 18px 22px;
+      box-shadow: 0 10px 28px rgba(20,30,60,.08);
+    }
+    .main{
+      display:flex;
+      flex-direction: column;
+      align-items:center;
+      gap: 12px;
+    }
+    .title{
+      margin: 2px 0 0;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+    .subtitle{
+      margin: -6px 0 4px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .modes{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content:center;
+      margin: 6px 0 2px;
+    }
+    .modeBtn{
+      border:1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 999px;
+      font-weight: 900;
+      font-size: 14px;
+      cursor:pointer;
+      min-width: 110px;
+      transition: background .15s ease, border-color .15s ease, transform .05s ease, opacity .15s ease;
+    }
+    .modeBtn:active{ transform: translateY(1px); }
+    .modeBtn.active{
+      background: var(--chip);
+      border-color: rgba(43,102,255,.35);
+    }
+    .modeBtn:disabled{
+      opacity: .55;
+      cursor: default;
+    }
+
+    .clockBox{
+      width: min(380px, 92vw);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      margin-top: 2px;
+    }
+    .answer{
+      width: min(520px, 96vw);
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 14px;
+      background: #ffffff;
+      text-align:center;
+      min-height: 58px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .answer .text{
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+    .btnArea{
+      width: min(520px, 96vw);
+      margin-top: 2px;
+    }
+    .mainBtn{
+      width:100%;
+      border:0;
+      border-radius: 14px;
+      padding: 14px 14px;
+      font-size: 18px;
+      font-weight: 900;
+      cursor:pointer;
+      background: var(--accent);
+      color:#fff;
+      box-shadow: 0 10px 18px rgba(43,102,255,.18);
+      transition: transform .05s ease, background .15s ease, opacity .15s ease;
+    }
+    .mainBtn:hover{ background: var(--accent2); }
+    .mainBtn:active{ transform: translateY(1px); }
+    .mainBtn:disabled{
+      opacity: .65;
+      cursor: default;
+    }
+
+    .sr{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="main">
+        <div class="title">とけいクイズ</div>
+        <div class="subtitle">なんじ／なんじはん</div>
+
+        <!-- 並び：○じだけ / ○じはんだけ / ぜんぶ（右端） -->
+        <div class="modes" role="group" aria-label="もーど">
+          <button class="modeBtn active" id="modeHour">○じだけ</button>
+          <button class="modeBtn" id="modeHalf">○じはんだけ</button>
+          <button class="modeBtn" id="modeAll">ぜんぶ</button>
+        </div>
+
+        <div class="clockBox" aria-label="とけい">
+          <svg id="clock" width="380" height="380" viewBox="0 0 320 320" role="img" aria-labelledby="clockTitle">
+            <title id="clockTitle">はりのとけい</title>
+
+            <defs>
+              <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="rgba(20,30,60,.18)"/>
+              </filter>
+            </defs>
+
+            <circle cx="160" cy="160" r="142" fill="#ffffff" stroke="#e7eaf3" stroke-width="10" filter="url(#softShadow)"/>
+            <circle cx="160" cy="160" r="126" fill="none" stroke="#f0f2f8" stroke-width="2"/>
+
+            <g id="marks" stroke="#2a3042" stroke-linecap="round"></g>
+            <g id="nums" fill="#2a3042" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle"></g>
+
+            <g id="hands" transform="translate(160 160)">
+              <line id="minHand"  x1="0" y1="12" x2="0" y2="-92" stroke="#2a3042" stroke-width="6" stroke-linecap="round"/>
+              <line id="hourHand" x1="0" y1="10" x2="0" y2="-62" stroke="#2a3042" stroke-width="9" stroke-linecap="round"/>
+              <circle cx="0" cy="0" r="7" fill="#2a3042"/>
+              <circle cx="0" cy="0" r="3" fill="#ffffff"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="answer" aria-live="polite">
+          <div class="text" id="answerText"></div>
+          <div class="sr" id="srAnswer"></div>
+        </div>
+
+        <div class="btnArea">
+          <button class="mainBtn" id="mainBtn">こたえ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const marksG = document.getElementById("marks");
+  const numsG  = document.getElementById("nums");
+  const hourHand = document.getElementById("hourHand");
+  const minHand  = document.getElementById("minHand");
+
+  const mainBtn = document.getElementById("mainBtn");
+  const answerText = document.getElementById("answerText");
+  const srAnswer = document.getElementById("srAnswer");
+
+  const modeAll  = document.getElementById("modeAll");
+  const modeHour = document.getElementById("modeHour");
+  const modeHalf = document.getElementById("modeHalf");
+
+  const HIRA = [
+    "",
+    "いちじ","にじ","さんじ","よじ","ごじ","ろくじ","しちじ","はちじ","くじ",
+    "じゅうじ","じゅういちじ","じゅうにじ"
+  ];
+  const PROMPT = "いま なんじ？";
+
+  // 効果音（生成）
+  let audioCtx = null;
+  function getCtx(){
+    if (!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === "suspended"){
+      audioCtx.resume().catch(()=>{});
+    }
+    return audioCtx;
+  }
+  function beep({freq=880, dur=0.08, type="sine", gain=0.08} = {}){
+    const ctx = getCtx();
+    const t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  }
+  function sfxAnswer(){ beep({freq: 1046, dur: 0.085, type:"triangle", gain:0.09}); }
+  function sfxNext(){
+    beep({freq: 659, dur: 0.07, type:"sine", gain:0.07});
+    setTimeout(()=>beep({freq: 784, dur: 0.07, type:"sine", gain:0.07}), 90);
+  }
+
+  // 文字盤（数字 & 目盛り）
+  function buildFace(){
+    for (let i=0;i<60;i++){
+      const a = (i * 6) * Math.PI / 180;
+      const isFive = i % 5 === 0;
+
+      const rOuter = 124;
+      const rInner = isFive ? 106 : 114;
+
+      const x1 = 160 + rInner * Math.sin(a);
+      const y1 = 160 - rInner * Math.cos(a);
+      const x2 = 160 + rOuter * Math.sin(a);
+      const y2 = 160 - rOuter * Math.cos(a);
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+      line.setAttribute("stroke-width", isFive ? "4" : "2");
+      line.setAttribute("opacity", isFive ? "0.9" : "0.35");
+      line.setAttribute("stroke", "#2a3042");
+      line.setAttribute("stroke-linecap", "round");
+      marksG.appendChild(line);
+    }
+
+    for (let h=1; h<=12; h++){
+      const a = (h * 30) * Math.PI / 180;
+      const r = 92;
+      const x = 160 + r * Math.sin(a);
+      const y = 160 - r * Math.cos(a);
+
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", x);
+      t.setAttribute("y", y);
+      t.setAttribute("fill", "#2a3042");
+      t.setAttribute("font-size", "18");
+      t.setAttribute("font-weight", "800");
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("dominant-baseline", "middle");
+      t.textContent = String(h);
+      numsG.appendChild(t);
+    }
+  }
+  buildFace();
+
+  // モード（デフォルト：○じだけ）
+  let mode = "hour"; // all / hour / half
+  let animating = false;
+
+  function setMode(nextMode){
+    if (animating) return;
+    mode = nextMode;
+    modeAll.classList.toggle("active", mode==="all");
+    modeHour.classList.toggle("active", mode==="hour");
+    modeHalf.classList.toggle("active", mode==="half");
+    setQuestionRandom();
+  }
+  modeAll.addEventListener("click", ()=>setMode("all"));
+  modeHour.addEventListener("click", ()=>setMode("hour"));
+  modeHalf.addEventListener("click", ()=>setMode("half"));
+
+  // 状態
+  let curHour = 3; // 1..12
+  let curMin  = 0; // 0/30
+  let showingAnswer = false;
+
+  function setHandsByMinuteValue(totalMinutes){
+    // 分針：1分で6度
+    const m = ((totalMinutes % 60) + 60) % 60;
+    // 時針：1分で0.5度（= 12時間で360度）
+    const t720 = ((totalMinutes % 720) + 720) % 720; // 0..719.999...
+    minHand.setAttribute("transform", `rotate(${m*6})`);
+    hourHand.setAttribute("transform", `rotate(${t720*0.5})`);
+  }
+
+  function setHands(hour, minute){
+    const h = hour % 12;
+    minHand.setAttribute("transform", `rotate(${minute*6})`);
+    hourHand.setAttribute("transform", `rotate(${h*30 + minute*0.5})`);
+  }
+
+  function pickNextTime(){
+    const h = Math.floor(Math.random() * 12) + 1;
+    let m;
+    if (mode === "hour") m = 0;
+    else if (mode === "half") m = 30;
+    else m = Math.random() < 0.5 ? 0 : 30;
+    return {h, m};
+  }
+
+  function setQuestionRandom(){
+    const nxt = pickNextTime();
+    curHour = nxt.h;
+    curMin  = nxt.m;
+    setHands(curHour, curMin);
+
+    answerText.textContent = PROMPT;
+    srAnswer.textContent = "";
+    showingAnswer = false;
+    mainBtn.textContent = "こたえ";
+  }
+
+  function showAnswer(){
+    const jp = (curMin === 0) ? HIRA[curHour] : (HIRA[curHour] + "はん");
+    answerText.textContent = jp;
+    srAnswer.textContent = `こたえは ${jp} です。`;
+    showingAnswer = true;
+    mainBtn.textContent = "つぎへ";
+  }
+
+  function lockUI(locked){
+    mainBtn.disabled = locked;
+    modeAll.disabled = locked;
+    modeHour.disabled = locked;
+    modeHalf.disabled = locked;
+  }
+
+  function toMinuteBase(hour, minute){
+    const hh = (hour % 12); // 12 -> 0
+    return hh * 60 + minute; // 0..719
+  }
+
+  function animateToNext(nextHour, nextMin){
+    animating = true;
+    lockUI(true);
+
+    const start = toMinuteBase(curHour, curMin);
+    const end   = toMinuteBase(nextHour, nextMin);
+
+    let diff = (end - start + 720) % 720;
+    if (diff === 0) diff = 720;
+
+    const durationMs = 1000; // つねに1びょう（みじかい→ゆっくり／ながい→はやい）
+    const tStart = performance.now();
+
+    // 次へ押した瞬間に「新しい問題（答え空白）」状態へ
+    answerText.textContent = PROMPT;
+    srAnswer.textContent = "";
+    showingAnswer = false;
+    mainBtn.textContent = "こたえ";
+
+    const step = (now) => {
+      const p = Math.min(1, Math.max(0, (now - tStart) / durationMs));
+      const cur = start + diff * p;
+      setHandsByMinuteValue(cur);
+
+      if (p < 1){
+        requestAnimationFrame(step);
+      } else {
+        curHour = nextHour;
+        curMin  = nextMin;
+        setHands(curHour, curMin);
+
+        animating = false;
+        lockUI(false);
+      }
+    };
+
+    requestAnimationFrame(step);
+  }
+
+  mainBtn.addEventListener("click", () => {
+    getCtx();
+
+    if (animating) return;
+
+    if (!showingAnswer){
+      sfxAnswer();
+      showAnswer();
+    } else {
+      sfxNext();
+      const nxt = pickNextTime();
+      animateToNext(nxt.h, nxt.m);
+    }
+  });
+
+  // 初期表示（デフォルト：○じだけ）
+  setMode("hour");
+})();
+</script>
+</body>
+</html>
